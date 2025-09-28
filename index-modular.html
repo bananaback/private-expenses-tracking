@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý chi tiêu</title>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- Header -->
+        <div class="gradient-card text-white rounded-2xl p-8 mb-8 text-center shadow-2xl">
+            <h1 class="text-4xl font-light mb-3">💰 Quản Lý Chi Tiêu</h1>
+            <p class="text-lg opacity-90">Theo dõi chi tiêu hàng ngày và giữ ngân sách</p>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="xl:col-span-1 space-y-6">
+                <!-- Budget Setup -->
+                <div class="gradient-budget p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Thiết Lập Ngân Sách</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tổng Ngân Sách (VNĐ)</label>
+                            <input type="number" id="totalBudget" placeholder="900000" step="1000"
+                                class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Ngày Bắt Đầu</label>
+                                <input type="date" id="startDate"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Ngày Kết Thúc</label>
+                                <input type="date" id="endDate" value="2025-10-06"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Expense -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Thêm Chi Tiêu</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Bạn đã chi tiêu vào
+                                gì?</label>
+                            <input type="text" id="expenseDescription" placeholder="Cà phê, cơm trưa, xe bus..."
+                                class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Số Tiền (VNĐ)</label>
+                                <input type="number" id="expenseAmount" placeholder="50000" step="1000"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Danh Mục</label>
+                                <input type="text" id="expenseCategory" placeholder="Ăn uống, Di chuyển, v.v..."
+                                    list="categoryList"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                                <datalist id="categoryList"></datalist>
+                            </div>
+                        </div>
+                        <button id="addExpenseBtn"
+                            class="w-full gradient-bg text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
+                            Thêm Chi Tiêu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Import/Export -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Quản Lý Dữ Liệu</h2>
+                    <div class="flex gap-3">
+                        <button id="exportBtn"
+                            class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                            📤 Xuất
+                        </button>
+                        <button id="importBtn"
+                            class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                            📥 Nhập
+                        </button>
+                        <input type="file" id="fileInput" accept=".json" class="hidden">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="xl:col-span-2 space-y-6">
+                <!-- Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="stat-remaining text-white p-6 rounded-2xl text-center shadow-lg">
+                        <div class="text-3xl font-bold" id="remainingAmount">0</div>
+                        <div class="text-sm opacity-90">VNĐ Còn Lại</div>
+                    </div>
+                    <div class="stat-daily text-gray-800 p-6 rounded-2xl text-center shadow-lg">
+                        <div class="text-3xl font-bold" id="dailyBudget">0</div>
+                        <div class="text-sm opacity-90">VNĐ Mỗi Ngày</div>
+                    </div>
+                    <div class="stat-spent text-gray-800 p-6 rounded-2xl text-center shadow-lg">
+                        <div class="text-3xl font-bold" id="totalSpent">0</div>
+                        <div class="text-sm opacity-90">VNĐ Đã Chi</div>
+                    </div>
+                </div>
+
+                <!-- Days Remaining Warning -->
+                <div id="daysRemaining"
+                    class="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-xl hidden"></div>
+
+                <!-- Calendar -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">Lịch Chi Tiêu</h2>
+                        <div class="flex gap-2">
+                            <button id="prevMonth"
+                                class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">‹</button>
+                            <button id="nextMonth"
+                                class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">›</button>
+                        </div>
+                    </div>
+                    <div id="currentMonth" class="text-lg font-semibold text-gray-700 mb-4 text-center"></div>
+                    <div class="grid grid-cols-7 gap-2 text-center mb-2">
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T2</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T3</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T4</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T5</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T6</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T7</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">CN</div>
+                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Daily Expenses -->
+    <div id="dailyExpensesModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalDate" class="text-xl font-semibold text-gray-800"></h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+
+            <!-- Category Filter Chips -->
+            <div class="mb-4">
+                <div class="text-sm font-medium text-gray-700 mb-2">Lọc theo danh mục:</div>
+                <div id="categoryFilters" class="flex flex-wrap"></div>
+            </div>
+
+            <div id="modalExpenses" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/utils/helpers.js"></script>
+    <script src="assets/js/utils/storage.js"></script>
+    <script src="assets/js/modules/expenseManager.js"></script>
+    <script src="assets/js/modules/statistics.js"></script>
+    <script src="assets/js/modules/calendar.js"></script>
+    <script src="assets/js/modules/modal.js"></script>
+    <script src="assets/js/app.js"></script>
+
+    <!-- Initialize Application -->
+    <script>
+        $(document).ready(function () {
+            AppController.init();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý chi tiêu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .gradient-budget {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
+        .stat-remaining {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-daily {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        .stat-spent {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .calendar-day {
+            transition: all 0.2s ease;
+            aspect-ratio: 1;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 8px 4px;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            transform: scale(1.02);
+        }
+
+        .has-expenses {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .category-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: #e5e7eb;
+            color: #374151;
+            margin-right: 8px;
+        }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            margin: 2px;
+            background: #f3f4f6;
+            color: #374151;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .filter-chip:hover {
+            background: #e5e7eb;
+        }
+
+        .filter-chip.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- Header -->
+        <div class="gradient-card text-white rounded-2xl p-8 mb-8 text-center shadow-2xl">
+            <h1 class="text-4xl font-light mb-3">💰 Quản lí chi tiêu - Sinh tồn mode</h1>
+            <p class="text-lg opacity-90">Theo dõi từng đồng xu để khỏi ăn mì gói cả tháng 😅</p>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="xl:col-span-1 space-y-6">
+                <!-- Budget Setup -->
+                <div class="gradient-budget p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">⚔️ Chuẩn Bị Sinh Tồn</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tổng Ngân Sách Để Sống
+                                (VNĐ)</label>
+                            <input type="number" id="totalBudget" placeholder="900000" step="1000"
+                                class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Bắt Đầu Cuộc Chiến</label>
+                                <input type="date" id="startDate"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Hạn Chót Sinh Tồn</label>
+                                <input type="date" id="endDate" value="2025-10-06"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Expense -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">💸 Ghi Nhận Tổn Thất</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tiền bay vào đâu rồi?</label>
+                            <input type="text" id="expenseDescription"
+                                placeholder="Trà sữa sinh tồn, cơm hộp cứu đói..."
+                                class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Tổn thất bao nhiêu</label>
+                                <input type="number" id="expenseAmount" placeholder="50000" step="1000"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Loại tổn thất</label>
+                                <input type="text" id="expenseCategory" placeholder="Sống sót, Đi lại, Mua sắm hộp..." }
+                                    list="categoryList"
+                                    class="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors">
+                                <datalist id="categoryList"></datalist>
+                            </div>
+                        </div>
+                        <button id="addExpenseBtn"
+                            class="w-full gradient-bg text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200">
+                            😭 Ghi nhận tổn thất
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Import/Export -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">📊 Sao lưu sinh tồn</h2>
+                    <div class="flex gap-3">
+                        <button id="exportBtn"
+                            class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                            📤 Sao lưu
+                        </button>
+                        <button id="importBtn"
+                            class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                            📥 Khôi phục
+                        </button>
+                        <input type="file" id="fileInput" accept=".json" class="hidden">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="xl:col-span-2 space-y-6">
+                <!-- Stats -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="stat-remaining text-white p-6 rounded-2xl text-center shadow-lg">
+                        <div class="text-3xl font-bold" id="remainingAmount">0</div>
+                        <div class="text-sm opacity-90">💰 VNĐ để cầm cự</div>
+                    </div>
+                    <div class="stat-daily text-gray-800 p-6 rounded-2xl text-center shadow-lg">
+                        <div class="text-3xl font-bold" id="dailyBudget">0</div>
+                        <div class="text-sm opacity-90">🍜 phân chia VNĐ/ngày để sống</div>
+                    </div>
+                    <div class="stat-spent text-gray-800 p-6 rounded-2xl text-center shadow-lg">
+                        <div class="text-3xl font-bold" id="totalSpent">0</div>
+                        <div class="text-sm opacity-90">😭 VNĐ đã tốn</div>
+                    </div>
+                </div>
+
+                <!-- Days Remaining Warning -->
+                <div id="daysRemaining"
+                    class="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-xl hidden"></div>
+
+                <!-- Calendar -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">📅 Lịch chi tiêu</h2>
+                        <div class="flex gap-2">
+                            <button id="prevMonth"
+                                class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">‹</button>
+                            <button id="nextMonth"
+                                class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">›</button>
+                        </div>
+                    </div>
+                    <div id="currentMonth" class="text-lg font-semibold text-gray-700 mb-4 text-center"></div>
+                    <div class="grid grid-cols-7 gap-2 text-center mb-2">
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T2</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T3</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T4</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T5</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T6</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">T7</div>
+                        <div class="p-3 font-semibold text-gray-600 text-sm">CN</div>
+                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Daily Expenses -->
+    <div id="dailyExpensesModal" class="fixed inset-0 modal-overlay hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalDate" class="text-xl font-semibold text-gray-800"></h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+
+            <!-- Category Filter Chips -->
+            <div class="mb-4">
+                <div class="text-sm font-medium text-gray-700 mb-2">Lọc theo loại tổn thất:</div>
+                <div id="categoryFilters" class="flex flex-wrap"></div>
+            </div>
+
+            <div id="modalExpenses" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <script>
+        let expenses = [];
+        let currentDate = new Date();
+        let categories = ['Sống Sót', 'Di Chuyển', 'Mua Sắm Hộp', 'Giải Trí Rẻ', 'Hóa Đơn Tử Thần', 'Sức Khỏe', 'Tổn Thất Khác'];
+
+        $(document).ready(function () {
+            // Set today's date
+            $('#startDate').val(new Date().toISOString().split('T')[0]);
+
+            loadData();
+            updateStats();
+            renderCalendar();
+            updateCategoryDatalist();
+
+            // Event listeners
+            $('#addExpenseBtn').click(addExpense);
+            $('#exportBtn').click(exportData);
+            $('#importBtn').click(() => $('#fileInput').click());
+            $('#fileInput').change(importData);
+            $('#prevMonth').click(() => changeMonth(-1));
+            $('#nextMonth').click(() => changeMonth(1));
+            $('#closeModal').click(() => $('#dailyExpensesModal').addClass('hidden'));
+
+            // Auto-update stats
+            $('#totalBudget, #startDate, #endDate').on('input change', updateStats);
+
+            // Enter key support
+            $('#expenseAmount, #expenseDescription, #expenseCategory').keypress(function (e) {
+                if (e.which === 13) addExpense();
+            });
+
+            // Close modal on overlay click
+            $('#dailyExpensesModal').click(function (e) {
+                if (e.target === this) $(this).addClass('hidden');
+            });
+        });
+
+        function addExpense() {
+            const description = $('#expenseDescription').val().trim();
+            const amount = parseFloat($('#expenseAmount').val());
+            const category = $('#expenseCategory').val().trim() || 'Chưa phân loại';
+
+            if (!description || !amount) {
+                alert('Thiếu thông tin rồi! Điền đủ mô tả với số tiền đi bạn êi~ 😅');
+                return;
+            }
+
+            const expense = {
+                id: Date.now(),
+                description: description,
+                amount: amount,
+                category: category,
+                date: new Date().toISOString().split('T')[0],
+                timestamp: new Date().toISOString()
+            };
+
+            expenses.unshift(expense);
+
+            // Add new category if not exists
+            if (!categories.includes(category) && category !== 'Chưa phân loại') {
+                categories.push(category);
+                updateCategoryDatalist();
+            }
+
+            // Clear form
+            $('#expenseDescription, #expenseAmount, #expenseCategory').val('');
+
+            saveData();
+            updateStats();
+            renderCalendar();
+        }
+
+        function deleteExpense(id) {
+            if (confirm('Xóa luôn hả? Nghĩ kỹ kẻo tiếc nha! 🤔')) {
+                // Find the expense to get its date before deleting
+                const expenseToDelete = expenses.find(exp => exp.id === id);
+                const expenseDate = expenseToDelete ? expenseToDelete.date : null;
+
+                expenses = expenses.filter(exp => exp.id !== id);
+                saveData();
+                updateStats();
+                renderCalendar();
+
+                // Update modal if it's open
+                if (!$('#dailyExpensesModal').hasClass('hidden') && expenseDate) {
+                    showDailyExpenses(expenseDate);
+                }
+            }
+        }
+
+        function updateStats() {
+            const totalBudget = parseFloat($('#totalBudget').val()) || 0;
+            const startDate = new Date($('#startDate').val());
+            const endDate = new Date($('#endDate').val());
+
+            if (!startDate || !endDate || startDate >= endDate) {
+                $('#remainingAmount, #dailyBudget, #totalSpent').text('0');
+                return;
+            }
+
+            // Filter expenses in date range
+            const expensesInRange = expenses.filter(exp => {
+                const expDate = new Date(exp.date);
+                return expDate >= startDate && expDate <= endDate;
+            });
+
+            const totalSpent = expensesInRange.reduce((sum, exp) => sum + exp.amount, 0);
+            const remaining = totalBudget - totalSpent;
+
+            // Calculate days
+            const today = new Date();
+            const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) + 1;
+            const dailyBudget = daysRemaining > 0 ? remaining / daysRemaining : 0;
+
+            // Update display
+            $('#remainingAmount').text(formatNumber(remaining));
+            $('#dailyBudget').text(formatNumber(Math.max(0, dailyBudget)));
+            $('#totalSpent').text(formatNumber(totalSpent));
+
+            // Days remaining warning
+            const $warning = $('#daysRemaining');
+            if (daysRemaining <= 0) {
+                $warning.removeClass('hidden').html('⚠️ Hết sạch ngân sách! Chuẩn bị sống bằng mì gói thôi 🍜😂');
+            } else if (daysRemaining <= 7) {
+                $warning.removeClass('hidden').html(`⏰ Còn cầm cự được ${daysRemaining} ngày nữa, ráng sống sót nha chiến hữu! 💪`);
+            } else {
+                $warning.addClass('hidden');
+            }
+
+            // Color coding for remaining amount
+            const $remainingCard = $('.stat-remaining');
+            if (remaining < 0) {
+                $remainingCard.removeClass('stat-remaining').addClass('bg-red-500');
+            } else if (dailyBudget < 50000) {
+                $remainingCard.removeClass('stat-remaining bg-red-500').addClass('bg-orange-500');
+            } else {
+                $remainingCard.removeClass('bg-red-500 bg-orange-500').addClass('stat-remaining');
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // Update month display
+            $('#currentMonth').text(new Date(year, month).toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }));
+
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = (firstDay.getDay() + 6) % 7; // Monday = 0
+
+            let calendarHTML = '';
+
+            // Empty cells for days before month starts
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                calendarHTML += '<div class="p-2"></div>';
+            }
+
+            // Calendar days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayExpenses = expenses.filter(exp => exp.date === dateStr);
+                const totalAmount = dayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+                const hasExpenses = dayExpenses.length > 0;
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+
+                let classes = 'calendar-day rounded-lg cursor-pointer text-sm border ';
+                if (hasExpenses) {
+                    classes += 'has-expenses ';
+                } else {
+                    classes += 'bg-gray-50 hover:bg-gray-100 border-gray-200 ';
+                }
+                if (isToday) {
+                    classes += 'ring-2 ring-yellow-400 ';
+                }
+
+                calendarHTML += `
+                    <div class="${classes}" onclick="showDailyExpenses('${dateStr}')">
+                        <div class="font-bold text-base mb-1">${day}</div>
+                        ${hasExpenses ? `<div class="text-xs font-medium truncate w-full text-center">${formatNumber(totalAmount)}</div>` : ''}
+                        ${hasExpenses ? `<div class="text-xs opacity-75">${dayExpenses.length}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            $('#calendarGrid').html(calendarHTML);
+        }
+
+        function showDailyExpenses(dateStr, selectedCategory = 'Tất Cả') {
+            const dayExpenses = expenses.filter(exp => exp.date === dateStr);
+            const formattedDate = new Date(dateStr).toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            $('#modalDate').text(`Tổn Thất - ${formattedDate}`);
+
+            // Get unique categories from this day's expenses
+            const dayCategories = [...new Set(dayExpenses.map(exp => exp.category))].sort();
+
+            // Render category filter chips
+            renderCategoryFilters(dayCategories, selectedCategory, dateStr);
+
+            // Filter expenses by selected category
+            const filteredExpenses = selectedCategory === 'Tất Cả'
+                ? dayExpenses
+                : dayExpenses.filter(exp => exp.category === selectedCategory);
+
+            if (filteredExpenses.length === 0) {
+                const message = selectedCategory === 'Tất Cả'
+                    ? 'Hôm nay chưa ghi đồng nào, ví vẫn an toàn 😏'
+                    : `Mục này trống trơn, chưa tốn xu nào trong "${selectedCategory}"`;
+                $('#modalExpenses').html(`<p class="text-gray-500 text-center py-4">${message}</p>`);
+            } else {
+                let html = '';
+                filteredExpenses.forEach(expense => {
+                    html += `
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-800">${expense.description}</div>
+                                    <div class="mt-1">
+                                        <span class="category-badge">${expense.category}</span>
+                                        <span class="text-sm text-gray-600">${new Date(expense.timestamp).toLocaleTimeString()}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-bold text-red-600">${formatNumber(expense.amount)} VND</div>
+                                    <button onclick="deleteExpense(${expense.id})" class="mt-2 bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors">
+                                        🗑️ Xóa
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                $('#modalExpenses').html(html);
+            }
+
+            $('#dailyExpensesModal').removeClass('hidden');
+        }
+
+        function renderCategoryFilters(dayCategories, selectedCategory, dateStr) {
+            let filtersHtml = '';
+
+            // Always include "Tất Cả" filter
+            const isAllActive = selectedCategory === 'Tất Cả' ? 'active' : '';
+            filtersHtml += `<span class="filter-chip ${isAllActive}" onclick="showDailyExpenses('${dateStr}', 'Tất Cả')">Tất Cả</span>`;
+
+            // Add category filters
+            dayCategories.forEach(category => {
+                const isActive = selectedCategory === category ? 'active' : '';
+                filtersHtml += `<span class="filter-chip ${isActive}" onclick="showDailyExpenses('${dateStr}', '${category}')">${category}</span>`;
+            });
+
+            $('#categoryFilters').html(filtersHtml);
+        }
+
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        function updateCategoryDatalist() {
+            const options = categories.map(cat => `<option value="${cat}">`).join('');
+            $('#categoryList').html(options);
+        }
+
+        function formatNumber(num) {
+            return Math.round(num).toLocaleString('vi-VN');
+        }
+
+        function saveData() {
+            const data = {
+                expenses: expenses,
+                categories: categories,
+                settings: {
+                    totalBudget: $('#totalBudget').val(),
+                    startDate: $('#startDate').val(),
+                    endDate: $('#endDate').val()
+                }
+            };
+            localStorage.setItem('expenseTracker', JSON.stringify(data));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('expenseTracker');
+            if (saved) {
+                const data = JSON.parse(saved);
+                expenses = data.expenses || [];
+                categories = data.categories || categories;
+
+                if (data.settings) {
+                    $('#totalBudget').val(data.settings.totalBudget || '');
+                    $('#startDate').val(data.settings.startDate || new Date().toISOString().split('T')[0]);
+                    $('#endDate').val(data.settings.endDate || '2025-10-06');
+                }
+            }
+        }
+
+        function exportData() {
+            const data = {
+                expenses: expenses,
+                categories: categories,
+                settings: {
+                    totalBudget: $('#totalBudget').val(),
+                    startDate: $('#startDate').val(),
+                    endDate: $('#endDate').val()
+                },
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `expenses-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (confirm('Dữ liệu cũ sẽ bay màu hết. Chơi tiếp không? 😎')) {
+                        expenses = data.expenses || [];
+                        categories = data.categories || categories;
+
+                        if (data.settings) {
+                            $('#totalBudget').val(data.settings.totalBudget || '');
+                            $('#startDate').val(data.settings.startDate || '');
+                            $('#endDate').val(data.settings.endDate || '2025-10-06');
+                        }
+
+                        saveData();
+                        updateStats();
+                        renderCalendar();
+                        updateCategoryDatalist();
+                        alert('Khôi phục dữ liệu ngon lành! 🎉');
+                    }
+                } catch (error) {
+                    alert('File này lỗi rồi, thử lại đi bạn êi~ 😅');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+
+</html>
